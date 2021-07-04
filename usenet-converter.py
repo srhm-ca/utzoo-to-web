@@ -2,7 +2,6 @@ import tarfile
 import argparse
 import re
 from pathlib import Path
-from pprint import pprint
 
 
 def get_arg():
@@ -14,12 +13,12 @@ def get_arg():
 
 def extract(path):
     for file in Path(path).iterdir():
-        tarfile.open(file, 'r:gz').extractall(".tmp")
+        tarfile.open(file, "r:gz").extractall(".tmp")
 
 
 def scrape(path):
     files = []
-    for file in list(Path(path).rglob('*')):
+    for file in list(Path(path).rglob("*")):
         if file.is_file():
             try:
                 files.append(file.read_text())
@@ -47,17 +46,17 @@ def crawl(path, key):
     return key
 
 
-def skeleton(files):
+def populate(files):
     db = {}
     for mail in files:
         try:
             metadata = get_metadata(mail)
-            key = crawl(metadata[0].split('.'), db)
+            key = crawl(metadata[0].split("."), db)
             if "threads" not in key:
                 key["threads"] = {}
             key = key["threads"]
             if not re.search(r"^[Rr][Ee]:", metadata[1]):
-                key[metadata[1]] = []
+                key[metadata[1]] = [mail]
             else:
                 if metadata[1][4:] in key:
                     key[metadata[1][4:]].append(mail)
@@ -66,29 +65,19 @@ def skeleton(files):
     return db
 
 
-# def populate(db, files):
-#     for mail in files:
-#         try:
-#             metadata = get_metadata(mail)
-#             key = crawl(metadata[0].split('.'), db)
-#             key = key["threads"]
-#             if metadata[1]
-#         except AttributeError:
-#             pass
-
-
-def generateindex(db):
-    index = open("test.html", 'w')
-    for key in db:
-        index.write("<a href=\"lol\">" + str(key) + "</a><br>")
+def generate(db):
+    index = open("test.html", "w")
+    key = crawl(["alt", "hypertext", "threads"], db)
+    for thread in key:
+        text = re.sub(r"\n", "<br>", str(key[thread]))
+        index.write(text + "<hr>")
 
 
 if __name__ == "__main__":
     args = get_arg()
-    if not Path('.tmp').exists():
+    if not Path(".tmp").exists():
         extract(args.dir)
-    files = scrape('.tmp')
-    db = skeleton(files)
-    # populate(db, files)
-    pprint(db["ny"])
+    files = scrape(".tmp")
+    db = populate(files)
+    generate(db)
     quit()
