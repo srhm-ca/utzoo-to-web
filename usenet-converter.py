@@ -60,8 +60,7 @@ def populate(files):
     for mail in files:
         try:
             metadata = info(mail)
-            db["map"].append(metadata["newsgroup"].split("."))
-            key = crawl(db["map"][-1:][0], db)
+            key = crawl(metadata["newsgroup"].split("."), db)
             if "threads" not in key:
                 key["threads"] = {}
             key = key["threads"]
@@ -70,6 +69,9 @@ def populate(files):
             else:
                 if metadata["subject"][4:] in key:
                     key[metadata["subject"][4:]].append(mail)
+            if metadata["newsgroup"].split(".") not in db["map"]:
+                db["map"].append((metadata["newsgroup"].split(".")))
+                db["map"].sort()
         except AttributeError:
             pass
     return db
@@ -77,6 +79,7 @@ def populate(files):
 
 def write_posts(path, key):
     file = open("output/" + path + ".html", "w")
+    file.write("<!DOCTYPE html>")
     for thread in key:
         for x, response in enumerate(key[thread]):
             metadata = info(response)
@@ -97,7 +100,7 @@ def write_posts(path, key):
                     file.write(
                         "<blockquote><em>" + line + "</em></blockquote> ")
                 else:
-                    file.write("</em>" + line + " ")
+                    file.write(line + " ")
             if x > 0:
                 file.write("</blockquote>")
         file.write("<hr>")
@@ -105,10 +108,18 @@ def write_posts(path, key):
 
 
 def generate(db):
+    index = open("output/index.html", "w")
+    index.write("<!DOCTYPE html><table style=\"width:50%\">")
     for path in db["map"]:
         path.append("threads")
         key = crawl(path, db)
-        write_posts("_".join(path), key)
+        write_posts("_".join(path[:-1]), key)
+        index.write("<tr><th style=\"text-align:left;\">"
+                    + "<a href=\"" + "_".join(path[:-1]) + ".html\">"
+                    + ".".join(path[:-1]) + "</th><th>" + str(len(key))
+                    + " threads</th></tr>")
+    index.write("</table>")
+    index.close()
 
 
 if __name__ == "__main__":
