@@ -1,8 +1,8 @@
 import tarfile
 import argparse
 import re
-from pprint import pprint
 from pathlib import Path
+from pprint import pprint
 
 
 def get_arg():
@@ -28,39 +28,59 @@ def scrape(path):
     return files
 
 
-def sort(files):
+def get_metadata(target):
+    metadata = []
+    newsgroups = re.search(r"(Newsgroups:.*)", target).group(0)
+    subject = re.search(r"(Subject:.*)", target).group(0)
+    metadata.append(re.search(r"([\w]*\.+[\w.]*)", newsgroups).group(0))
+    metadata.append(subject[9:])
+    return metadata
+
+
+def crawl(path, key):
+    if not path[0] in key:
+        key[path[0]] = {}
+    if len(path) > 1:
+        key = crawl(path[1:], key[path[0]])
+    else:
+        key = key[path[0]]
+    return key
+
+
+def skeleton(files):
     db = {}
     for mail in files:
         try:
-            groups = re.search(r"(Newsgroups:.*)", mail).group(0)
-            group = re.search(r"([\w]*\.+[\w.]*)", groups).group(0)
-            x = group.split('.')
-            if not x[0] in db:
-                db[x[0]] = {}
-            try:
-                if x[1]:
-                    majorkey = db[x[0]]
-                    if not x[1] in majorkey:
-                        majorkey[x[1]] = {}
-            except IndexError:
-                pass
-            try:
-                if x[2]:
-                    minorkey = majorkey[x[1]]
-                    if not x[2] in minorkey:
-                        minorkey[x[2]] = {}
-            except IndexError:
-                pass
-            try:
-                if x[3]:
-                    smallkey = minorkey[x[2]]
-                    if not x[3] in minorkey:
-                        smallkey[x[3]] = {}
-            except IndexError:
-                pass
+            metadata = get_metadata(mail)
+            key = crawl(metadata[0].split('.'), db)
+            if "threads" not in key:
+                key["threads"] = {}
+            key = key["threads"]
+            if not re.search(r"^[Rr][Ee]:", metadata[1]):
+                key[metadata[1]] = []
+            else:
+                if metadata[1][4:] in key:
+                    key[metadata[1][4:]].append(mail)
         except AttributeError:
             pass
     return db
+
+
+# def populate(db, files):
+#     for mail in files:
+#         try:
+#             metadata = get_metadata(mail)
+#             key = crawl(metadata[0].split('.'), db)
+#             key = key["threads"]
+#             if metadata[1]
+#         except AttributeError:
+#             pass
+
+
+def generateindex(db):
+    index = open("test.html", 'w')
+    for key in db:
+        index.write("<a href=\"lol\">" + str(key) + "</a><br>")
 
 
 if __name__ == "__main__":
@@ -68,6 +88,7 @@ if __name__ == "__main__":
     if not Path('.tmp').exists():
         extract(args.dir)
     files = scrape('.tmp')
-    db = sort(files)
-    pprint(db)
+    db = skeleton(files)
+    # populate(db, files)
+    pprint(db["ny"])
     quit()
