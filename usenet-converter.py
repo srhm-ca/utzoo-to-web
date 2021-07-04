@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import tarfile
 import argparse
 import re
@@ -5,6 +6,7 @@ from pathlib import Path
 
 
 def get_arg():
+    """Retrieve arguments from command-line"""
     parser = argparse.ArgumentParser()
     parser.add_argument("dir", help="target directory")
     args = parser.parse_args()
@@ -12,11 +14,13 @@ def get_arg():
 
 
 def extract(path):
+    """Extract all .tar.gz in directory"""
     for file in Path(path).iterdir():
         tarfile.open(file, "r:gz").extractall(".tmp")
 
 
 def scrape(path):
+    """Recursively scrape text from a directory"""
     files = []
     for file in list(Path(path).rglob("*")):
         if file.is_file():
@@ -28,6 +32,7 @@ def scrape(path):
 
 
 def info(target):
+    """Return metadata for target article"""
     metadata = {}
     groups = re.search(r"(Newsgroups:.*)", target).group(0)
     subject = re.search(r"(Subject:.*)", target).group(0)
@@ -41,10 +46,12 @@ def info(target):
         if not re.search(r".*:.*", line):
             metadata["length"] = x
             break
+    # Should seek to enable support for <1985 articles
     return metadata
 
 
 def crawl(path, key):
+    """Recursively traverse dict tree, return target layer"""
     if not path[0] in key:
         key[path[0]] = {}
     if len(path) > 1:
@@ -55,6 +62,7 @@ def crawl(path, key):
 
 
 def populate(files):
+    """Create and populate dict database with usenet articles"""
     db = {}
     db["map"] = []
     for mail in files:
@@ -78,6 +86,7 @@ def populate(files):
 
 
 def write_posts(path, key):
+    """Write out dict tree layer to HTML file"""
     file = open("output/" + path + ".html", "w")
     file.write("<!DOCTYPE html>")
     for thread in key:
@@ -108,6 +117,7 @@ def write_posts(path, key):
 
 
 def generate(db):
+    """Generate HTML files & index for db"""
     index = open("output/index.html", "w")
     index.write("<!DOCTYPE html><table style=\"width:50%\">")
     for path in db["map"]:
