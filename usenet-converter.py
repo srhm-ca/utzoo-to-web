@@ -27,12 +27,20 @@ def scrape(path):
     return files
 
 
-def get_metadata(target):
-    metadata = []
-    newsgroups = re.search(r"(Newsgroups:.*)", target).group(0)
+def info(target):
+    metadata = {}
+    groups = re.search(r"(Newsgroups:.*)", target).group(0)
     subject = re.search(r"(Subject:.*)", target).group(0)
-    metadata.append(re.search(r"([\w]*\.+[\w.]*)", newsgroups).group(0))
-    metadata.append(subject[9:])
+    date = re.search(r"(Date:.*)", target).group(0)
+    author = re.search(r"(From:.*)", target).group(0)
+    metadata["newsgroups"] = re.search(r"([\w]*\.+[\w.]*)", groups).group(0)
+    metadata["subject"] = subject[9:]
+    metadata["author"] = author[6:]
+    metadata["date"] = date[6:]
+    for x, line in enumerate(target.splitlines()):
+        if not re.search(r".*:.*", line):
+            metadata["length"] = x
+            break
     return metadata
 
 
@@ -50,16 +58,16 @@ def populate(files):
     db = {}
     for mail in files:
         try:
-            metadata = get_metadata(mail)
-            key = crawl(metadata[0].split("."), db)
+            metadata = info(mail)
+            key = crawl(metadata["newsgroups"].split("."), db)
             if "threads" not in key:
                 key["threads"] = {}
             key = key["threads"]
-            if not re.search(r"^[Rr][Ee]:", metadata[1]):
-                key[metadata[1]] = [mail]
+            if not re.search(r"^[Rr][Ee]:", metadata["subject"]):
+                key[metadata["subject"]] = [mail]
             else:
-                if metadata[1][4:] in key:
-                    key[metadata[1][4:]].append(mail)
+                if metadata["subject"][4:] in key:
+                    key[metadata["subject"][4:]].append(mail)
         except AttributeError:
             pass
     return db
@@ -67,10 +75,28 @@ def populate(files):
 
 def generate(db):
     index = open("test.html", "w")
-    key = crawl(["alt", "hypertext", "threads"], db)
+    key = crawl(["rec", "music", "gaffa", "threads"], db)
     for thread in key:
-        text = re.sub(r"\n", "<br>", str(key[thread]))
-        index.write(text + "<hr>")
+        for x, response in enumerate(key[thread]):
+            metadata = info(response)
+            length = metadata.pop("length")
+            if x > 0:
+                index.write("<blockquote>")
+            for value in metadata:
+                index.write("<b>"
+                            + value + ": </b>" + str(metadata[value])
+                            + "<br>")
+            index.write("<br>")
+            for y, line in enumerate(response.splitlines()):
+                if y <= length:
+                    pass
+                elif line == "" and response.splitlines()[y - 1] != "":
+                    index.write("<br><br>")
+                else:
+                    index.write(line + " ")
+            if x > 0:
+                index.write("</blockquote>")
+        index.write("<hr>")
 
 
 if __name__ == "__main__":
