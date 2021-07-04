@@ -33,7 +33,7 @@ def info(target):
     subject = re.search(r"(Subject:.*)", target).group(0)
     date = re.search(r"(Date:.*)", target).group(0)
     author = re.search(r"(From:.*)", target).group(0)
-    metadata["newsgroups"] = re.search(r"([\w]*\.+[\w.]*)", groups).group(0)
+    metadata["newsgroup"] = re.search(r"([\w]*\.+[\w.]*)", groups).group(0)
     metadata["subject"] = subject[9:]
     metadata["author"] = author[6:]
     metadata["date"] = date[6:]
@@ -56,10 +56,12 @@ def crawl(path, key):
 
 def populate(files):
     db = {}
+    db["map"] = []
     for mail in files:
         try:
             metadata = info(mail)
-            key = crawl(metadata["newsgroups"].split("."), db)
+            db["map"].append(metadata["newsgroup"].split("."))
+            key = crawl(db["map"][-1:][0], db)
             if "threads" not in key:
                 key["threads"] = {}
             key = key["threads"]
@@ -73,30 +75,40 @@ def populate(files):
     return db
 
 
-def generate(db):
-    index = open("test.html", "w")
-    key = crawl(["rec", "music", "gaffa", "threads"], db)
+def write_posts(path, key):
+    file = open("output/" + path + ".html", "w")
     for thread in key:
         for x, response in enumerate(key[thread]):
             metadata = info(response)
             length = metadata.pop("length")
             if x > 0:
-                index.write("<blockquote>")
+                file.write("<blockquote>")
             for value in metadata:
-                index.write("<b>"
-                            + value + ": </b>" + str(metadata[value])
-                            + "<br>")
-            index.write("<br>")
+                file.write("<b>"
+                           + value + ": </b>" + str(metadata[value])
+                           + "<br>")
+            file.write("<br>")
             for y, line in enumerate(response.splitlines()):
                 if y <= length:
                     pass
                 elif line == "" and response.splitlines()[y - 1] != "":
-                    index.write("<br><br>")
+                    file.write("<br><br>")
+                elif re.search(r"writes:|[Ii]n [Aa]rticle|^[>]|~\|", line):
+                    file.write(
+                        "<blockquote><em>" + line + "</em></blockquote> ")
                 else:
-                    index.write(line + " ")
+                    file.write("</em>" + line + " ")
             if x > 0:
-                index.write("</blockquote>")
-        index.write("<hr>")
+                file.write("</blockquote>")
+        file.write("<hr>")
+    file.close()
+
+
+def generate(db):
+    for path in db["map"]:
+        path.append("threads")
+        key = crawl(path, db)
+        write_posts("_".join(path), key)
 
 
 if __name__ == "__main__":
