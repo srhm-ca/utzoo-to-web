@@ -105,7 +105,7 @@ def write_posts(path, key):
                     pass
                 elif line == "" and response.splitlines()[y - 1] != "":
                     file.write("<br><br>")
-                elif re.search(r"writes:|[Ii]n [Aa]rticle|^[>]|~\|", line):
+                elif re.search(r"writes:|[Ii]n [Aa]rticle|^[>]|~\|\|>|\|", line):
                     file.write(
                         "<blockquote><em>" + line + "</em></blockquote> ")
                 else:
