@@ -8,7 +8,7 @@ from pathlib import Path
 def get_arg():
     """Retrieve arguments from command-line"""
     parser = argparse.ArgumentParser()
-    parser.add_argument("dir", help="target directory")
+    parser.add_argument("dir", help="directory containing usenet .gz archives")
     args = parser.parse_args()
     return args
 
@@ -31,18 +31,18 @@ def scrape(path):
     return files
 
 
-def info(target):
-    """Return metadata for target article"""
+def info(article):
+    """Return metadata for article"""
     metadata = {}
-    groups = re.search(r"(Newsgroups:.*)", target).group(0)
-    subject = re.search(r"(Subject:.*)", target).group(0)
-    date = re.search(r"(Date:.*)", target).group(0)
-    author = re.search(r"(From:.*)", target).group(0)
+    groups = re.search(r"(Newsgroups:.*)", article).group(0)
+    subject = re.search(r"(Subject:.*)", article).group(0)
+    date = re.search(r"(Date:.*)", article).group(0)
+    author = re.search(r"(From:.*)", article).group(0)
     metadata["newsgroup"] = re.search(r"([\w]*\.+[\w.]*)", groups).group(0)
     metadata["subject"] = subject[9:]
     metadata["author"] = author[6:]
     metadata["date"] = date[6:]
-    for x, line in enumerate(target.splitlines()):
+    for x, line in enumerate(article.splitlines()):
         if not re.search(r".*:.*", line):
             metadata["length"] = x
             break
