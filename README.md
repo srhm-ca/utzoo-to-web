@@ -1,4 +1,4 @@
-# utzoo-converter
+# utzoo-to-web
 
 A tool for producing HTML files from the `utzoo` Usenet archive.
 
